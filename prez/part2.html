@@ -163,23 +163,16 @@
                     </section>
                     <section>
                         <h2>Configure Serf for Nginx</h2>
-                        <p>Contents of <span class="highlight-blue">serf.config.json</span> for serf</p>
-                        <pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px;">
+                        <p>contents of <span class="highlight-blue">serf.config.json</span> for serf</p>
+                        <pre><code data-trim style="font-size: 18px; margin-top: 20px;">
 {
     "tags": {
         "role": "load-balancer"
     },
     "event_handlers": [
-        "/myapp/handle.sh"
+        "/myapp/handle.php"
     ]
 }
-                        </code></pre>
-                        <p>Contents of handle.sh</p>
-                        <pre><code data-trim contenteditable style="font-size: 18px; margin-top: 20px;">
-#!/bin/bash
-if [ "$SERF_EVENT" = "member-join" ]; then
-    /usr/bin/php /myapp/member-join-handler.php
-fi
                         </code></pre>
 
                         <aside class="notes">
@@ -190,7 +183,27 @@ fi
                         </aside>
                     </section>
                     <section>
-                        <h2></h2>
+                        <h2>The PHP does ...</h2>
+                        <p>contents of member-join-handler.php</p>
+<pre><code data-trim style="font-size: 18px; margin-top: 20px;">
+&lt;?php
+if(getenv('SERF_EVENT') == 'member-join') {
+    // Serf provides the payload on stdin
+    list($hostname, $ip, $nodename, $tags) = readline().split(' ');
+
+    // if the joining member has an app role
+    if(stristr('role=app', $tags)) {
+        // update the nginx configs with a twig template or something
+
+        // what is Nginx's pid?
+
+
+        // send a HUP signal to Nginx
+        exec("kill -HUP ");
+    }
+}
+?&gt;
+</code></pre>
                     </section>
                 </section>
 

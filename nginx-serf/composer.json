@@ -1,0 +1,12 @@
+{
+    "name": "sscoble/nginx-serf",
+    "require": {
+        "twig/twig": "1.*"
+    },
+    "authors": [
+        {
+            "name": "Scott Scoble",
+            "email": "sscoble@codesmith.ws"
+        }
+    ]
+}

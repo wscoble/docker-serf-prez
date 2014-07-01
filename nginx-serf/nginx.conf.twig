@@ -1,0 +1,69 @@
+user www-data www-data;
+worker_processes 2;
+error_log logs/error.log;
+pid /var/run/nginx.pid;
+worker_rlimit_nofile 8192;
+
+events {
+  worker_connections 4096;
+}
+
+http {
+  include /etc/nginx/conf/mime.types;
+  include /etc/nginx/proxy.conf;
+  include /etc/nginx/fastcgi.conf;
+  index index.php;
+
+  default_type application/octet-stream;
+  log_format   main '$remote_addr - $remote_user [$time_local]  $status '
+    '"$request" $body_bytes_sent "$http_referer" '
+    '"$http_user_agent" "$http_x_forwarded_for"';
+  access_log   logs/access.log  main;
+  sendfile     on;
+  tcp_nopush   on;
+  server_names_hash_bucket_size 128; # this seems to be required for some vhosts
+
+  {% for site in sites %}
+      upstream upstream_{{ site.domain|replace({'.':'_'}) }} {
+        {% for backend in site.backends %}
+        {{ backend.ip }}:{{ backend.port }};
+        {% endfor %}
+      }
+      server { # php/fastcgi
+        listen       80;
+          server_name  {{ site.domain }} www.{{ site.domain }};
+          access_log   logs/{{ site.domain }}.access.log  main;
+          root         html;
+
+          location ~ [^/]\.php(/|$) {
+          fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+          if (!-f $document_root$fastcgi_script_name) {
+            return 404;
+          }
+
+          fastcgi_pass upstream_{{ site.domain|replace({'.':'_'}) }};
+          fastcgi_index index.php;
+          include fastcgi_params;
+        }
+      }
+      {% if site.ssl %}
+      server { # php/fastcgi
+        listen       443;
+        server_name  {{ site.domain }} www.{{ site.domain }};
+        access_log   logs/{{ site.domain }}.access.log  main;
+        root         html;
+
+        location ~ [^/]\.php(/|$) {
+          fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+          if (!-f $document_root$fastcgi_script_name) {
+            return 404;
+          }
+
+              fastcgi_pass upstream_{{ site.domain|replace({'.':'_'}) }};
+          fastcgi_index index.php;
+          include fastcgi_params;
+        }
+      }
+    {% endif %}
+  {% endfor %}
+}
